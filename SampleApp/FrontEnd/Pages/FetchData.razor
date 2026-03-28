@@ -1,36 +1,81 @@
 ﻿@page "/"
 @using FrontEnd.Data
-@inject WeatherForecastClient ForecastClient
+@inject ProductClient ProductClient
 
-<PageTitle>Weather forecast</PageTitle>
+<PageTitle>Catálogo de Produtos</PageTitle>
 
-<h1>Weather forecast</h1>
+<h1>Gerenciamento de Produtos (CRUD)</h1>
 
-<p>This component demonstrates fetching data from a service.</p>
+<p>Exemplo básico de API e front-end juntos.</p>
 
-@if (forecasts == null)
+<div class="row mb-3">
+    <div class="col-md-8">
+        <input class="form-control" placeholder="Nome" @bind="newProduct.Name" />
+    </div>
+    <div class="col-md-3">
+        <input class="form-control" placeholder="Preço" type="number" step="0.01" @bind="newProduct.Price" />
+    </div>
+    <div class="col-md-1">
+        <button class="btn btn-primary" @onclick="AddProduct">Adicionar</button>
+    </div>
+</div>
+
+@if (isLoading)
 {
-    <p><em>Loading...</em></p>
+    <p><em>Carregando produtos...</em></p>
+}
+else if (products is null || !products.Any())
+{
+    <p>Nenhum produto encontrado.</p>
 }
 else
 {
-    <table class="table">
+    <table class="table table-striped">
         <thead>
             <tr>
-                <th>Date</th>
-                <th>Temp. (C)</th>
-                <th>Temp. (F)</th>
-                <th>Summary</th>
+                <th>#</th>
+                <th>Nome</th>
+                <th>Preço</th>
+                <th>Ações</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var forecast in forecasts)
+            @foreach (var product in products)
             {
                 <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
+                    <td>@product.Id</td>
+                    <td>
+                        @if (editId == product.Id)
+                        {
+                            <input class="form-control" @bind="editProduct.Name" />
+                        }
+                        else
+                        {
+                            @product.Name
+                        }
+                    </td>
+                    <td>
+                        @if (editId == product.Id)
+                        {
+                            <input class="form-control" type="number" step="0.01" @bind="editProduct.Price" />
+                        }
+                        else
+                        {
+                            @product.Price.ToString("C2")
+                        }
+                    </td>
+                    <td>
+                        @if (editId == product.Id)
+                        {
+                            <button class="btn btn-sm btn-success" @onclick="() => UpdateProduct(product.Id)">Salvar</button>
+                            <button class="btn btn-sm btn-secondary" @onclick="CancelEdit">Cancelar</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-primary" @onclick="() => StartEdit(product)">Editar</button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteProduct(product.Id)">Excluir</button>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>
@@ -38,10 +83,69 @@ else
 }
 
 @code {
-    private WeatherForecast[]? forecasts;
+    private List<Product>? products;
+    private Product newProduct = new();
+    private Product editProduct = new();
+    private int editId = 0;
+    private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        forecasts = await ForecastClient.GetForecastAsync(DateTime.Now);
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        isLoading = true;
+        products = (await ProductClient.GetAllAsync()).ToList();
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task AddProduct()
+    {
+        if (string.IsNullOrWhiteSpace(newProduct.Name) || newProduct.Price <= 0)
+            return;
+
+        var created = await ProductClient.CreateAsync(newProduct);
+        if (created is not null)
+        {
+            newProduct = new();
+            await LoadProducts();
+        }
+    }
+
+    private void StartEdit(Product product)
+    {
+        editId = product.Id;
+        editProduct = new Product { Id = product.Id, Name = product.Name, Price = product.Price };
+    }
+
+    private void CancelEdit()
+    {
+        editId = 0;
+    }
+
+    private async Task UpdateProduct(int id)
+    {
+        if (string.IsNullOrWhiteSpace(editProduct.Name) || editProduct.Price <= 0)
+            return;
+
+        var success = await ProductClient.UpdateAsync(id, editProduct);
+        if (success)
+        {
+            editId = 0;
+            await LoadProducts();
+        }
+    }
+
+    private async Task DeleteProduct(int id)
+    {
+        var success = await ProductClient.DeleteAsync(id);
+        if (success)
+        {
+            await LoadProducts();
+        }
     }
 }
+

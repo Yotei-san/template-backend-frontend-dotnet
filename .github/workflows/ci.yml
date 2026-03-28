@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        dotnet-version: ["10.0.x"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+
+      - name: Restore dependencies
+        run: dotnet restore SampleApp/SampleApp.sln
+
+      - name: Build
+        run: dotnet build SampleApp/SampleApp.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test SampleApp/SampleApp.Tests/SampleApp.Tests.csproj --configuration Release --no-build --verbosity normal
+
+  docker-compose:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build_and_run docker-compose
+        run: |
+          cd SampleApp
+          docker compose build
+          docker compose up -d
+          sleep 15
+          curl --retry 10 --retry-delay 3 --retry-connrefused -f http://localhost:5000/products
+          curl --retry 10 --retry-delay 3 --retry-connrefused -f http://localhost:8081
+          docker compose down

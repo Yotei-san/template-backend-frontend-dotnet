@@ -5,12 +5,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
+var backendUrl = builder.Configuration["WEATHER_URL"]
+    ?? builder.Configuration["BACKEND_URL"]
+    ?? "http://localhost:5000/";
+
 builder.Services.AddHttpClient<WeatherForecastClient>(c =>
 {
-    var url = builder.Configuration["WEATHER_URL"] 
-        ?? throw new InvalidOperationException("WEATHER_URL is not set");
+    c.BaseAddress = new(backendUrl);
+});
 
-    c.BaseAddress = new(url);
+builder.Services.AddHttpClient<ProductClient>(c =>
+{
+    c.BaseAddress = new(backendUrl);
 });
 
 var app = builder.Build();

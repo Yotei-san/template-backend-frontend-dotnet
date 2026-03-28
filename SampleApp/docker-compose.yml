@@ -1,0 +1,24 @@
+version: '3.9'
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: BackEnd/Dockerfile
+    container_name: sampleapp-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_URLS=http://+:5000
+
+  frontend:
+    build:
+      context: .
+      dockerfile: FrontEnd/Dockerfile
+    container_name: sampleapp-frontend
+    ports:
+      - "8081:8081"
+    environment:
+      - ASPNETCORE_URLS=http://+:8081
+      - BACKEND_URL=http://backend:5000/
+    depends_on:
+      - backend
