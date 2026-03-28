@@ -77,3 +77,4 @@ Body JSON:
 
 ### Excluir
 DELETE `http://localhost:5000/products/{id}`
+Projeto fullstack .NET com CRUD, Docker e CI
