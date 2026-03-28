@@ -79,3 +79,5 @@ Body JSON:
 DELETE `http://localhost:5000/products/{id}`
 ## PR FINAL
 Teste para gerar diferença entre main e feature
+Projeto fullstack .NET com CRUD, Docker e CI
+Atualização para gerar PR
